@@ -1,16 +1,21 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 interface MusicPlayerProps {
   videoId: string;
 }
 
-export default function MusicPlayer({ videoId }: MusicPlayerProps) {
+export interface MusicPlayerRef {
+  play: () => void;
+}
+
+const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ videoId }, ref) => {
   const [isMuted, setIsMuted] = useState(false);
   const playerRef = useRef<any>(null);
   const isLoadingRef = useRef(false);
+  const isReadyRef = useRef(false);
 
   useEffect(() => {
     // Prevent loading YouTube API multiple times
@@ -38,7 +43,11 @@ export default function MusicPlayer({ videoId }: MusicPlayerProps) {
     return () => {
       // Cleanup player on unmount
       if (playerRef.current) {
-        playerRef.current.destroy();
+        try {
+          playerRef.current.destroy();
+        } catch (e) {
+          // Ignore errors on cleanup
+        }
       }
     };
   }, [videoId]);
@@ -51,7 +60,7 @@ export default function MusicPlayer({ videoId }: MusicPlayerProps) {
       width: '0',
       videoId: videoId,
       playerVars: {
-        autoplay: 1,
+        autoplay: 0, // Don't autoplay - wait for user interaction
         loop: 1,
         playlist: videoId,
         controls: 0,
@@ -59,11 +68,20 @@ export default function MusicPlayer({ videoId }: MusicPlayerProps) {
       events: {
         onReady: (event: any) => {
           event.target.setVolume(30);
-          event.target.playVideo();
+          isReadyRef.current = true;
         },
       },
     });
   };
+
+  // Expose play method to parent
+  useImperativeHandle(ref, () => ({
+    play: () => {
+      if (playerRef.current && isReadyRef.current) {
+        playerRef.current.playVideo();
+      }
+    },
+  }));
 
   const toggleMute = () => {
     if (playerRef.current) {
@@ -94,4 +112,8 @@ export default function MusicPlayer({ videoId }: MusicPlayerProps) {
       </motion.button>
     </>
   );
-}
+});
+
+MusicPlayer.displayName = 'MusicPlayer';
+
+export default MusicPlayer;

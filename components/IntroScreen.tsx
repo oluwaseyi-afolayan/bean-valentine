@@ -4,9 +4,19 @@ import { motion } from 'framer-motion';
 
 interface IntroScreenProps {
   onStart: () => void;
+  onEnableAudio?: () => void;
 }
 
-export default function IntroScreen({ onStart }: IntroScreenProps) {
+export default function IntroScreen({ onStart, onEnableAudio }: IntroScreenProps) {
+  const handleClick = () => {
+    // Enable audio first
+    if (onEnableAudio) {
+      onEnableAudio();
+    }
+    // Then start the app
+    onStart();
+  };
+
   return (
     <motion.div
       className="min-h-screen flex items-center justify-center p-4"
@@ -32,7 +42,7 @@ export default function IntroScreen({ onStart }: IntroScreenProps) {
 
         <motion.button
           className="btn-primary"
-          onClick={onStart}
+          onClick={handleClick}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.5, duration: 0.4 }}

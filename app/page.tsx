@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import IntroScreen from '@/components/IntroScreen';
 import QuizQuestion, { Question } from '@/components/QuizQuestion';
 import ReactionScreen from '@/components/ReactionScreen';
 import FinalScreen from '@/components/FinalScreen';
 import FloatingHearts from '@/components/FloatingHearts';
-import MusicPlayer from '@/components/MusicPlayer';
+import MusicPlayer, { MusicPlayerRef } from '@/components/MusicPlayer';
 
 const questions: Question[] = [
   {
@@ -53,6 +53,14 @@ export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('intro');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isCorrect, setIsCorrect] = useState(false);
+  const musicPlayerRef = useRef<MusicPlayerRef>(null);
+
+  const handleEnableAudio = useCallback(() => {
+    // Start music when user clicks the intro button
+    if (musicPlayerRef.current) {
+      musicPlayerRef.current.play();
+    }
+  }, []);
 
   const handleStart = useCallback(() => {
     setCurrentScreen('quiz');
@@ -84,11 +92,15 @@ export default function Home() {
   return (
     <main className="relative">
       <FloatingHearts count={20} />
-      <MusicPlayer videoId="3sur4BmjQt8" />
+      <MusicPlayer ref={musicPlayerRef} videoId="3sur4BmjQt8" />
       
       <AnimatePresence mode="wait">
         {currentScreen === 'intro' && (
-          <IntroScreen key="intro" onStart={handleStart} />
+          <IntroScreen 
+            key="intro" 
+            onStart={handleStart}
+            onEnableAudio={handleEnableAudio}
+          />
         )}
         
         {currentScreen === 'quiz' && (
