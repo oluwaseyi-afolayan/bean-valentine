@@ -4,92 +4,56 @@ import { motion } from 'framer-motion';
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 
 interface MusicPlayerProps {
-  videoId: string;
+  audioUrl: string; // Use direct audio file URL instead of YouTube
 }
 
 export interface MusicPlayerRef {
   play: () => void;
 }
 
-const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ videoId }, ref) => {
+const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ audioUrl }, ref) => {
   const [isMuted, setIsMuted] = useState(false);
-  const playerRef = useRef<any>(null);
-  const isLoadingRef = useRef(false);
-  const isReadyRef = useRef(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    // Prevent loading YouTube API multiple times
-    if (isLoadingRef.current) return;
-    
-    // Check if API is already loaded
-    if ((window as any).YT?.Player) {
-      initializePlayer();
-      return;
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    isLoadingRef.current = true;
+    // Set volume
+    audio.volume = 0.3;
+    audio.loop = true;
 
-    // Load YouTube IFrame API
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    tag.async = true;
-    
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    // Handle play state changes
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
 
-    // Set up callback
-    (window as any).onYouTubeIframeAPIReady = initializePlayer;
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
 
     return () => {
-      // Cleanup player on unmount
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (e) {
-          // Ignore errors on cleanup
-        }
-      }
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
     };
-  }, [videoId]);
-
-  const initializePlayer = () => {
-    if (playerRef.current) return; // Already initialized
-
-    playerRef.current = new (window as any).YT.Player('youtube-player', {
-      height: '0',
-      width: '0',
-      videoId: videoId,
-      playerVars: {
-        autoplay: 0, // Don't autoplay - wait for user interaction
-        loop: 1,
-        playlist: videoId,
-        controls: 0,
-      },
-      events: {
-        onReady: (event: any) => {
-          event.target.setVolume(30);
-          isReadyRef.current = true;
-        },
-      },
-    });
-  };
+  }, []);
 
   // Expose play method to parent
   useImperativeHandle(ref, () => ({
     play: () => {
-      if (playerRef.current && isReadyRef.current) {
-        playerRef.current.playVideo();
+      if (audioRef.current) {
+        audioRef.current.play().catch((error) => {
+          console.log('Audio play failed:', error);
+        });
       }
     },
   }));
 
   const toggleMute = () => {
-    if (playerRef.current) {
+    if (audioRef.current) {
       if (isMuted) {
-        playerRef.current.unMute();
-        playerRef.current.setVolume(30);
+        audioRef.current.muted = false;
       } else {
-        playerRef.current.mute();
+        audioRef.current.muted = true;
       }
       setIsMuted(!isMuted);
     }
@@ -97,7 +61,7 @@ const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ videoId }, r
 
   return (
     <>
-      <div id="youtube-player" className="hidden" />
+      <audio ref={audioRef} src={audioUrl} preload="auto" />
       <motion.button
         className="music-toggle"
         onClick={toggleMute}
@@ -108,7 +72,7 @@ const MusicPlayer = forwardRef<MusicPlayerRef, MusicPlayerProps>(({ videoId }, r
         transition={{ delay: 1, duration: 0.5 }}
         aria-label={isMuted ? 'Unmute music' : 'Mute music'}
       >
-        {isMuted ? '🔇' : '🎵'}
+        {isMuted ? '🔇' : isPlaying ? '🎵' : '🎵'}
       </motion.button>
     </>
   );

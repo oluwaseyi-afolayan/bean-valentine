@@ -92,7 +92,8 @@ export default function Home() {
   return (
     <main className="relative">
       <FloatingHearts count={20} />
-      <MusicPlayer ref={musicPlayerRef} videoId="3sur4BmjQt8" />
+      {/* Replace with your audio file URL - see instructions below */}
+      <MusicPlayer ref={musicPlayerRef} audioUrl="/music/song.mp3" />
       
       <AnimatePresence mode="wait">
         {currentScreen === 'intro' && (
